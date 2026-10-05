@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cronograma da Dispensa Eletrônica</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#f3f8f3;
+    --panel:#ffffff;
+    --panel-2:#f7fbf8;
+    --ink:#122018;
+    --muted:#5c6a62;
+    --line:#cfe3d4;
+    --grid:#e2efe5;
+    --grid-strong:#c6ddcc;
+    --weekend:#e8f1ea;
+    --accent:#00A651;
+    --accent-soft:#F2A900;
+    --blue:#0072CE;
+    --today:#E8491D;
+    --track:#edf4ee;
+    --header:#00843D;
+    --shadow:0 1px 2px rgba(18,32,24,.05),0 8px 24px -12px rgba(18,32,24,.18);
+    --labelw:208px;
+    --daysw:26px;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0e1712; --panel:#152018; --panel-2:#18251c; --ink:#e9f3ea; --muted:#9fb2a5;
+      --line:#23382b; --grid:#1f3127; --grid-strong:#2c4635; --weekend:#121d16;
+      --accent:#35D483; --accent-soft:#FFD24A; --blue:#5AA9F0; --today:#FF7A59;
+      --track:#1b2a21; --header:#1f5e3b;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1712; --panel:#152018; --panel-2:#18251c; --ink:#e9f3ea; --muted:#9fb2a5;
+    --line:#23382b; --grid:#1f3127; --grid-strong:#2c4635; --weekend:#121d16;
+    --accent:#35D483; --accent-soft:#FFD24A; --blue:#5AA9F0; --today:#FF7A59;
+    --track:#1b2a21; --header:#1f5e3b;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    padding:28px 16px 48px;
+    background:var(--bg);
+    color:var(--ink);
+    font:400 14px/1.5 "IBM Plex Sans",-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+  }
+  .wrap{max-width:1040px;margin:0 auto}
+
+  /* ---------- header ---------- */
+  .top{display:flex;align-items:flex-start;gap:16px;margin-bottom:22px}
+  .top-text{min-width:0;flex:1}
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 8px;
+  }
+  h1{font-size:clamp(21px,3.4vw,29px);line-height:1.2;margin:0 0 8px;font-weight:700;text-wrap:balance}
+  .sub{color:var(--muted);font-size:14px;margin:0;max-width:62ch}
+
+  .theme-btn{
+    flex:none;display:grid;place-items:center;width:36px;height:36px;
+    border:1px solid var(--line);border-radius:10px;background:var(--panel);
+    color:var(--muted);cursor:pointer;font-size:15px;line-height:1;
+    transition:color .15s,border-color .15s,background .15s;
+  }
+  .theme-btn:hover{color:var(--ink);border-color:var(--grid-strong)}
+  .theme-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ---------- stats ---------- */
+  .stats{
+    display:grid;gap:10px;margin:0 0 18px;
+    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  }
+  .stat{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:11px 14px;
+  }
+  .stat dt{
+    font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 3px;font-weight:500;
+  }
+  .stat dd{
+    margin:0;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:17px;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat dd small{font-size:11.5px;font-weight:500;color:var(--muted);margin-left:4px}
+
+  /* ---------- card ---------- */
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    border-top:4px solid var(--header);box-shadow:var(--shadow);overflow:hidden;
+  }
+  .chart-scroll{overflow-x:auto;overscroll-behavior-x:contain}
+  .chart{min-width:calc(var(--labelw) + 28 * var(--daysw));position:relative}
+
+  /* ---------- ruler ---------- */
+  .ruler{
+    display:grid;grid-template-columns:var(--labelw) 1fr;
+    position:sticky;top:0;z-index:3;background:var(--panel-2);
+    border-bottom:1px solid var(--grid-strong);
+  }
+  .ruler-sp{
+    position:sticky;left:0;z-index:2;background:var(--panel-2);
+    border-right:1px solid var(--grid-strong);
+    display:flex;align-items:flex-end;padding:0 14px 6px;
+    font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+  }
+  .months,.days{display:grid}
+  .month{
+    font-size:11px;font-weight:600;color:var(--muted);padding:6px 8px 4px;
+    border-left:1px solid var(--grid-strong);letter-spacing:.04em;text-transform:uppercase;
+    white-space:nowrap;overflow:hidden;
+  }
+  .day{
+    padding:2px 0 5px;text-align:center;border-left:1px solid var(--grid);
+    font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  }
+  .day.we{background:var(--weekend)}
+  .day .dw{display:block;font-size:9px;color:var(--muted);line-height:1.3}
+  .day .dn{display:block;font-size:10.5px;font-weight:500;line-height:1.3}
+  .day.is-today .dn{
+    color:#fff;background:var(--today);border-radius:4px;
+    width:18px;margin:0 auto;font-weight:700;
+  }
+
+  /* ---------- rows ---------- */
+  .body{position:relative}
+  .overlay{position:absolute;left:var(--labelw);right:0;top:0;bottom:0;pointer-events:none;z-index:0}
+  .ov-cols{position:absolute;inset:0;display:grid}
+  .ov-col{border-left:1px solid var(--grid)}
+  .ov-col.we{background:var(--weekend)}
+  .today-line{
+    position:absolute;top:0;bottom:0;width:2px;background:var(--today);
+    transform:translateX(-1px);z-index:2;
+  }
+  .today-line::after{
+    content:"hoje";position:absolute;top:2px;left:4px;
+    font-family:"IBM Plex Mono",monospace;font-size:9.5px;font-weight:600;
+    color:var(--today);background:var(--panel);padding:0 3px;border-radius:3px;
+  }
+
+  .row{
+    position:relative;z-index:1;
+    display:grid;grid-template-columns:var(--labelw) 1fr;
+    min-height:50px;border-top:1px solid var(--grid);
+  }
+  .row:first-child{border-top:none}
+  .row:hover .row-label{background:var(--panel-2)}
+  .row-label{
+    position:sticky;left:0;z-index:2;background:var(--panel);
+    border-right:1px solid var(--grid-strong);
+    display:flex;flex-direction:column;justify-content:center;gap:2px;
+    padding:9px 14px;min-width:0;transition:background .12s;
+  }
+  .row-label .name{
+    display:flex;align-items:baseline;gap:7px;
+    font-size:13px;font-weight:600;line-height:1.3;
+  }
+  .row-label .num{
+    font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;
+    color:var(--muted);flex:none;
+  }
+  .row-label .dates{
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--muted);
+    font-variant-numeric:tabular-nums;padding-left:17px;
+  }
+  .track-wrap{position:relative;display:flex;align-items:center;padding:0 2px}
+  .track{position:relative;width:100%;height:24px}
+  .bar{
+    position:absolute;top:0;height:24px;border-radius:6px;
+    display:flex;align-items:center;justify-content:flex-start;
+    padding:0 8px;overflow:hidden;cursor:default;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
+    transition:filter .12s,transform .12s;
+  }
+  .bar:hover{filter:brightness(1.07);transform:translateY(-1px)}
+  .bar .dur{
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:700;
+    color:#fff;white-space:nowrap;text-shadow:0 1px 1px rgba(0,0,0,.28);
+  }
+  .bar.on-light .dur{color:#1a1400;text-shadow:none}
+  .milestone{
+    position:absolute;top:50%;width:15px;height:15px;
+    transform:translate(-50%,-50%) rotate(45deg);border-radius:3px;
+    box-shadow:0 0 0 3px var(--panel);
+  }
+  .ms-tag{
+    position:absolute;top:50%;transform:translateY(-50%);
+    font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:700;
+    color:var(--today);white-space:nowrap;
+  }
+
+  /* ---------- legend / footer ---------- */
+  .legend{
+    display:flex;gap:8px 20px;flex-wrap:wrap;align-items:center;
+    padding:14px clamp(14px,3vw,22px);border-top:1px solid var(--grid);
+    font-size:12px;color:var(--muted);background:var(--panel-2);
+  }
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;flex:none}
+  .legend i.ms{transform:rotate(45deg);width:9px;height:9px}
+  .legend i.we{background:var(--weekend);border:1px solid var(--grid-strong)}
+  footer{margin-top:16px;font-size:11.5px;line-height:1.6;color:var(--muted);max-width:78ch}
+  .hint{
+    margin:10px 0 0;font-size:11.5px;color:var(--muted);
+    display:flex;align-items:center;gap:6px;
+  }
+  @media (min-width:760px){.hint{display:none}}
+
+  @media print{
+    body{background:#fff;padding:0}
+    .theme-btn,.hint{display:none}
+    .card{box-shadow:none;break-inside:avoid}
+    .chart-scroll{overflow:visible}
+    .chart{min-width:0}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <div class="top-text">
+      <p class="eyebrow">Processo nº 23249.010987.2026-19 &middot; UASG 158128</p>
+      <h1>Cronograma da fase de licitação — dispensa eletrônica</h1>
+      <p class="sub">Etapas de 6 de outubro a 2 de novembro de 2026, do cadastro do DFD no Compras.gov até a sessão pública.</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Alternar tema claro/escuro" title="Alternar tema">◐</button>
+  </div>
+
+  <dl class="stats" id="stats"></dl>
+
+  <div class="card">
+    <div class="chart-scroll">
+      <div class="chart" id="chart"></div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--accent)"></i> Planejamento / preços</span>
+      <span><i style="background:var(--blue)"></i> Instrução (ETP/TR)</span>
+      <span><i style="background:var(--accent-soft)"></i> Edital e propostas</span>
+      <span><i class="ms" style="background:var(--today)"></i> Marco</span>
+      <span><i class="we"></i> Fim de semana</span>
+    </div>
+  </div>
+
+  <p class="hint">↔ Arraste o gráfico para o lado para ver todo o período.</p>
+
+  <footer>Datas conforme planejamento informado; “dias úteis” indicado para o período de propostas. Elaborado com base no cronograma da Coordenadoria para o processo de aquisição ProEaD — Campus Porto Franco.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- tema ---------- */
+  var root = document.documentElement, btn = document.getElementById("themeBtn");
+  try{ var saved = localStorage.getItem("gantt-theme"); if(saved) root.setAttribute("data-theme", saved); }catch(e){}
+  btn.addEventListener("click", function(){
+    var dark = getComputedStyle(root).colorScheme.indexOf("dark") > -1;
+    var next = dark ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try{ localStorage.setItem("gantt-theme", next); }catch(e){}
+    render();
+  });
+
+  /* ---------- dados ---------- */
+  var START = new Date(2026,9,6);   // 06/10/2026
+  var END   = new Date(2026,10,2);  // 02/11/2026
+  var MS = 86400000;
+  function day(d){ return Math.round((d - START) / MS); }
+  function D(y,m,dd){ return day(new Date(y,m,dd)); }
+  var totalDays = D(2026,10,2) + 1;
+
+  var MES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+  var DOW = ["D","S","T","Q","Q","S","S"];
+
+  var phases = [
+    {name:"DFD cadastrado no Compras.gov",                   s:D(2026,9,6),  e:D(2026,9,8),  c:"--accent",      label:"06–08 out"},
+    {name:"Pesquisa de preços",                              s:D(2026,9,6),  e:D(2026,9,13), c:"--accent",      label:"06–13 out"},
+    {name:"Elaboração do ETP",                               s:D(2026,9,9),  e:D(2026,9,16), c:"--blue",        label:"09–16 out"},
+    {name:"Elaboração do TR",                                s:D(2026,9,14), e:D(2026,9,21), c:"--blue",        label:"14–21 out"},
+    {name:"Elaboração do edital (aviso de contratação direta)",s:D(2026,9,22),e:D(2026,9,27), c:"--accent-soft", label:"22–27 out", onLight:true},
+    {name:"Período aberto para propostas (dias úteis)",       s:D(2026,9,28), e:D(2026,9,30), c:"--accent-soft", label:"28–30 out", onLight:true},
+    {name:"Sessão pública",                                  s:D(2026,10,2), e:D(2026,10,2), c:"--today",       label:"02 nov", milestone:true}
+  ];
+
+  /* ---------- helpers ---------- */
+  function dateAt(i){ return new Date(START.getTime() + i*MS); }
+  function isWeekend(i){ var w = dateAt(i).getDay(); return w === 0 || w === 6; }
+  function fmt(i){ var d = dateAt(i); return ("0"+d.getDate()).slice(-2) + " " + MES[d.getMonth()]; }
+  function pct(n){ return (n / totalDays * 100) + "%"; }
+  function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); }
+
+  var todayIdx = day(new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()));
+  var inRange = todayIdx >= 0 && todayIdx < totalDays;
+
+  /* ---------- stats ---------- */
+  var uteis = 0;
+  for(var i=0;i<totalDays;i++){ if(!isWeekend(i)) uteis++; }
+  var faltam = Math.ceil((END - new Date()) / MS);
+  var statsHtml = [
+    ["Duração total", totalDays + "<small>dias corridos</small>"],
+    ["Dias úteis", uteis + "<small>no período</small>"],
+    ["Etapas", phases.length + "<small>fases</small>"],
+    ["Sessão pública", "02/11<small>2026</small>"]
+  ];
+  if(faltam > 0) statsHtml.push(["Faltam", faltam + "<small>dias p/ sessão</small>"]);
+  document.getElementById("stats").innerHTML = statsHtml.map(function(s){
+    return '<div class="stat"><dt>'+s[0]+'</dt><dd>'+s[1]+'</dd></div>';
+  }).join("");
+
+  /* ---------- render ---------- */
+  function render(){
+    var cs = getComputedStyle(root);
+    var cols = "repeat(" + totalDays + ",1fr)";
+
+    // régua: faixa de meses + dias
+    var months = [], cur = null;
+    for(var i=0;i<totalDays;i++){
+      var m = dateAt(i).getMonth();
+      if(!cur || cur.m !== m){ cur = {m:m, n:0}; months.push(cur); }
+      cur.n++;
+    }
+    var monthsHtml = months.map(function(mm){
+      var d = new Date(2026, mm.m, 1);
+      return '<div class="month" style="grid-column:span '+mm.n+'">'+MES[mm.m]+' '+d.getFullYear()+'</div>';
+    }).join("");
+
+    var daysHtml = "", colsHtml = "";
+    for(i=0;i<totalDays;i++){
+      var we = isWeekend(i), d = dateAt(i);
+      daysHtml += '<div class="day'+(we?" we":"")+(inRange&&i===todayIdx?" is-today":"")+'">'
+        + '<span class="dw">'+DOW[d.getDay()]+'</span>'
+        + '<span class="dn">'+d.getDate()+'</span></div>';
+      colsHtml += '<div class="ov-col'+(we?" we":"")+'"></div>';
+    }
+
+    // linhas
+    var rows = phases.map(function(p, idx){
+      var left = pct(p.s), n = p.e - p.s + 1, color = cs.getPropertyValue(p.c).trim();
+      var tip = p.name + " — " + fmt(p.s) + (n>1 ? " a " + fmt(p.e) + " (" + n + " dias)" : "");
+      var bar = p.milestone
+        ? '<div class="milestone" style="left:'+left+';background:'+color+'" title="'+esc(tip)+'"></div>'
+          + '<div class="ms-tag" style="'+(p.s > totalDays/2 ? 'right:calc('+pct(totalDays-p.s)+' + 14px)' : 'left:calc('+left+' + 14px)')+'">'+p.label+'</div>'
+        : '<div class="bar'+(p.onLight?" on-light":"")+'" title="'+esc(tip)+'" style="left:'+left+';width:'+pct(n)+';background:'+color+'">'
+          + '<span class="dur">'+n+'d</span></div>';
+      return '<div class="row">'
+        + '<div class="row-label">'
+        +   '<div class="name"><span class="num">'+(idx+1)+'</span>'+esc(p.name)+'</div>'
+        +   '<div class="dates">'+p.label+'</div>'
+        + '</div>'
+        + '<div class="track-wrap"><div class="track">'+bar+'</div></div>'
+        + '</div>';
+    }).join("");
+
+    document.getElementById("chart").innerHTML =
+        '<div class="ruler">'
+      +   '<div class="ruler-sp">Etapa</div>'
+      +   '<div><div class="months" style="grid-template-columns:'+cols+'">'+monthsHtml+'</div>'
+      +   '<div class="days" style="grid-template-columns:'+cols+'">'+daysHtml+'</div></div>'
+      + '</div>'
+      + '<div class="body">'
+      +   '<div class="overlay"><div class="ov-cols" style="grid-template-columns:'+cols+'">'+colsHtml+'</div>'
+      +     (inRange ? '<div class="today-line" style="left:calc('+pct(todayIdx)+' + '+(50/totalDays)+'%)"></div>' : '')
+      +   '</div>'
+      +   rows
+      + '</div>';
+  }
+
+  render();
+  // o tema do sistema pode mudar com o gráfico aberto: recolorir as barras
+  if(window.matchMedia) try{ window.matchMedia("(prefers-color-scheme:dark)").addEventListener("change", render); }catch(e){}
+
+  /* ---------- self-check ---------- */
+  if(location.hash === "#selftest"){
+    console.assert(totalDays === 28, "totalDays deve ser 28, obtido " + totalDays);
+    console.assert(uteis === 20, "dias úteis deve ser 20, obtido " + uteis);
+    console.assert(D(2026,9,6) === 0 && D(2026,10,2) === 27, "índices de início/fim incorretos");
+    console.assert(isWeekend(D(2026,9,10)) && isWeekend(D(2026,9,11)), "10–11/10/2026 é fim de semana");
+    console.assert(!isWeekend(D(2026,9,6)), "06/10/2026 é terça-feira");
+    console.log("selftest ok");
+  }
+})();
+</script>
+</body>
+</html>
